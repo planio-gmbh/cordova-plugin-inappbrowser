@@ -35,6 +35,8 @@ function InAppBrowser() {
         'loadstart': channel.create('loadstart'),
         'loadstop' : channel.create('loadstop'),
         'loaderror' : channel.create('loaderror'),
+        'show' : channel.create('show'),
+        'hide' : channel.create('hide'),
         'exit' : channel.create('exit')
    };
 }
@@ -47,12 +49,17 @@ InAppBrowser.prototype = {
     },
     close: function (eventname) {
         exec(null, null, "InAppBrowser", "close", []);
+        this.visible = undefined;
     },
     show: function (eventname) {
         exec(null, null, "InAppBrowser", "show", []);
+        this.visible = true;
+        this._eventHandler({type: "show"});
     },
     hide: function (eventname) {
         exec(null, null, "InAppBrowser", "hide", []);
+        this.visible = false;
+        this._eventHandler({type: "hide"});
     },
     addEventListener: function (eventname,f) {
         if (eventname in this.channels) {
@@ -101,13 +108,19 @@ module.exports = function(strUrl, strWindowName, strWindowFeatures, callbacks) {
         iab.addEventListener(callbackName, callbacks[callbackName]);
     }
 
-    var cb = function(eventname) {
-       iab._eventHandler(eventname);
+    var cb = function(event) {
+       if (event === null) {
+          // Initial callback - when open succeeded
+          iab.visible = strWindowFeatures.indexOf("hidden=yes") === -1;
+       }
+
+       iab._eventHandler(event);
     };
 
     strWindowFeatures = strWindowFeatures || "";
 
     exec(cb, cb, "InAppBrowser", "open", [strUrl, strWindowName, strWindowFeatures]);
+
     return iab;
 };
 
